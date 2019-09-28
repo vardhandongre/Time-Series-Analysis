@@ -1,0 +1,187 @@
+---
+title: "STAT_429_HW2"
+author: 'Vardhan_Dongre, Netid: vdongre2'
+date: "9/27/2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+### Solution 1.20:
+```{r , echo=TRUE}
+########################## 1.20 Part (a) #####################
+
+w = rnorm(500,0,1)
+#v = filter(w, sides = 2, filter = rep(1/3,3))
+par(mfrow=c(2,1))
+plot.ts(w, main="White noise")
+#plot.ts(v, ylim=c(-3,3), main = "moving average")
+print(acf(w, lag.max = 20, na.action = na.pass))
+
+```
+
+
+```{r , echo=TRUE}
+########################## 1.20 Part (b) #####################
+
+v = rnorm(50,0,1)
+#v = filter(w, sides = 2, filter = rep(1/3,3))
+par(mfrow=c(2,1))
+plot.ts(w, main="White noise")
+#plot.ts(v, ylim=c(-3,3), main = "moving average")
+print(acf(v, lag.max = 20, na.action = na.pass))
+```
+
+### Solution 2.1:
+```{r , echo=TRUE}
+########################## 2.1 (a) #####################
+library(astsa)
+trend = time(jj) - 1970 # helps to 'center' time
+Q = factor(cycle(jj) ) # make (Q)uarter factors
+reg = lm(log(jj)~0 + trend + Q, na.action=NULL) # no intercept
+#model.matrix(reg)
+summary(reg)
+
+```
+
+```{r , echo=TRUE}
+########################## 2.1 (d) #####################
+library(astsa)
+trend = time(jj) - 1970 # helps to 'center' time
+Q = factor(cycle(jj) ) # make (Q)uarter factors
+reg1 = lm(log(jj)~trend + Q, na.action=NULL) 
+#model.matrix(reg)
+summary(reg1)
+```
+In the new we see that the model has disproportionate Pr|>t| values 
+
+```{r , echo=TRUE}
+########################## 2.1 (e) #####################
+pred = ts(predict(reg), start=c(1960,1), frequency=4)
+tsplot(log(jj), col=1, ylim=c(-1, 3))
+par(new=T)
+tsplot(pred, col=2,  xlab='', ylab='', ylim=c(-1, 3))
+
+tsplot(resid(reg))
+```
+
+The residuals do not represent white noise. We can comment that the fitting is not very good.
+
+
+### Solution 2.2:
+```{r , echo=TRUE}
+########################## 2.2 (a) #####################
+#par(mfrow=c(3,1)) # plot the data
+#plot(cmort, main="Cardiovascular Mortality", xlab="", ylab="")
+#plot(tempr, main="Temperature", xlab="", ylab="")
+#plot(part, main="Particulates", xlab="", ylab="")
+#dev.new() # open a new graphic device
+#ts.plot(cmort,tempr,part, col=1:3) # all on same plot (not shown)
+#dev.new()
+#pairs(cbind(Mortality=cmort, Temperature=tempr, Particulates=part))
+temp = tempr-mean(tempr) # center temperature
+temp2 = temp^2
+trend = time(cmort) # time
+fit = lm(cmort~ trend + temp + temp2 + part, na.action=NULL)
+#summary(fit) # regression results
+lagged = ts.intersect(cmort, trend, temp, temp2, part, part4 = lag(part,-4), dframe = TRUE)
+fit1 <- lm(cmort~ trend + temp + temp2 + part + part4, data = lagged, na.action=NULL)
+summary(fit1)
+#Calculate AIC, BIC and AICc for each model
+num = length(cmort) # sample size
+AIC(fit)/num - log(2*pi) # AIC model 1
+AIC(fit, k=log(num))/num - log(2*pi) # BIC model 1
+AIC(fit1)/num - log(2*pi) # AIC model 2
+AIC(fit1, k=log(num))/num - log(2*pi) # BIC model 2
+```
+We see that the Model 2 has lower AIC and BIC values than Model 1 thus it can be concluded that the model 2 is more capable to explain the data 
+
+```{r , echo=TRUE}
+########################## 2.2 (b) #####################
+partlag4 = lag(part,-4)
+pairs(cbind(Mortality=cmort, Temperature=tempr, Particulates=part, Particulates4 = partlag4))
+
+cor(lagged)
+```
+We see that Correlation between Mt and Pt is lower than that between Mt and Pt-4  thus there exist a better linear dependence between Mt and Pt-4 as compared to Mt and Pt
+
+### Solution 2.8:
+```{r , echo=TRUE}
+########################## 2.8 ########################
+par(mfrow=c(2,1))
+plot(varve, main="varve", ylab="")
+plot(log(varve), main="log(vavrve)", ylab="")
+
+####### (a) ######
+var(varve[1:217])
+var(varve[218:634])
+```
+We observe that there is large difference in the variance over first and second half of the data thus, it exhibits heteroscedasticity.  
+
+Lets transform this to log(varve)
+```{r , echo=TRUE}
+var(log(varve)[1:217])
+var(log(varve)[218:634])
+```
+We can see that the  variance over the two halves of data are now comparable thus this transformation stabilizes the variance over series
+
+```{r , echo=TRUE}
+# Histograms
+hist(varve)
+hist(log(varve))
+```
+By observing the histograms it can be seen that the graph for log(varve) is similar to a discrete normal distribution. Thus, approximation to normality **is** improved by transforming the data.
+
+```{r , echo=TRUE}
+####### (b) ######
+#par(mfrow=c(2,1))
+#plot(varve, main="varve", ylab="")
+plot(log(varve), main="log(vavrve)", ylab="")
+
+```
+Similarity between 100 - 600 range on log(varve) with 1940 - 1960 range on global temperature record
+
+```{r , echo=TRUE}
+####### (c) ######
+# ACF Value
+acf(log(varve))
+```
+From the ACF it can observed that it does not represent white noise
+
+
+```{r , echo=TRUE}
+####### (d) ######
+y = log(varve)
+ylag = lag(y, -1)
+u = y - ylag
+plot(u, main="yt - yt-1", ylab="")
+mean(u)
+acf(u)
+```
+
+
+From the ACF it can be seen that the structure is now regular.
+
+Practical Interpretation
+ut = log(yt) - log(yt-1) [Taylor series expansion]
+
+### Solution 2.11:
+
+#### Smoothing using Moving Averages
+```{r , echo=TRUE}
+# Smoothing using Moving Averages
+wgts = c(.5, rep(1,11), .5)/12
+globtempf = filter(globtemp, sides=2, filter=wgts)
+#par(mar = c(1, 1, 1, 1), mfrow=c(2,1))
+plot(globtemp)
+lines(globtempf, lwd=2, col=4)
+```
+
+#### Kernel Smoothing
+```{r , echo=TRUE}
+# Kernel Smoothing
+#par(mar = c(1, 1, 1, 1), mfrow=c(2,1))
+plot(globtemp)
+lines(ksmooth(time(globtemp), globtemp, "normal", bandwidth=3), lwd=2, col=4)
+```
+
+On comparing the two smoothing techniques we see that the moving averages gives a choopy effect while kernel smoothing which uses a normal distribution for the weights to average the observations gives a more smoother plot. For the kernel a suitable bandwidth needs to be chosen. Some peaks and trenches are lost in averages as compared to kernel smoothing.
